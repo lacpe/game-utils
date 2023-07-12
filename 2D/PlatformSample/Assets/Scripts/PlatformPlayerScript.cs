@@ -69,14 +69,10 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Flip()
     {
-        Debug.Log("I ran" + isFacingRight.ToString());
         isFacingRight = !isFacingRight;
-        Debug.Log("I ran 2" + isFacingRight.ToString());
         Vector3 localscale = transform.localScale;
         localscale.x *= -1f;
-        Debug.Log(localscale.ToString() + transform.localScale.ToString());
         transform.localScale = localscale;
-        Debug.Log(localscale.ToString() + transform.localScale.ToString());
     }
 
     private void Jump()
@@ -125,11 +121,16 @@ public class PlatformPlayerScript : MonoBehaviour
         /* This part starts the jump buffer timer at its max value if the jump key was just pressed, and the player is within "buffer distance" of the ground.
         If the player doesn't hit the jump button, then the timer runs down (i.e. infinitely low if the button is never pressed, but that's unlikely to happen).
         Do note that with this method, the bufferCheck GameObject has to be moved downwards to allow for earlier buffering.*/
-        if (input.PlatformInput.Jump.WasPerformedThisFrame() && canBuffer())
+        if (input.PlatformInput.Jump.WasPerformedThisFrame())
         {
-            //Debug.Log("Jump succesfully buffered !" + canBuffer().ToString() + isGrounded().ToString());
-            // If this returns true, false, then your input was succesfully buffered.
-            jumpBufferCounter = jumpBufferTime;
+            if (!canBuffer() && coyotteTimeCounter < 0f)
+            {
+                // Put double jump function here
+            }
+            else
+            {
+                jumpBufferCounter = jumpBufferTime;
+            }
         }
         else
         {
