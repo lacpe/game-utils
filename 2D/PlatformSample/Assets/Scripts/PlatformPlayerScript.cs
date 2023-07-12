@@ -69,10 +69,14 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Flip()
     {
+        Debug.Log("I ran" + isFacingRight.ToString());
         isFacingRight = !isFacingRight;
+        Debug.Log("I ran 2" + isFacingRight.ToString());
         Vector3 localscale = transform.localScale;
-        localscale.x = -1f;
+        localscale.x *= -1f;
+        Debug.Log(localscale.ToString() + transform.localScale.ToString());
         transform.localScale = localscale;
+        Debug.Log(localscale.ToString() + transform.localScale.ToString());
     }
 
     private void Jump()
