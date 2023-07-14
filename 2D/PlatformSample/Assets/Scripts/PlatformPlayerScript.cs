@@ -16,6 +16,9 @@ public class PlatformPlayerScript : MonoBehaviour
     public float coyotteTime = 0.2f;
     public float jumpBufferTime = 0.2f;
     public float wallSlidingSpeed = 4f;
+    public float wallJumpTime = 0.4f;
+    public float wallJumpPushBack = 6;
+    public float wallJumpStr = 4;
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
@@ -24,6 +27,7 @@ public class PlatformPlayerScript : MonoBehaviour
     private float jumpBufferCounter;
     private float jumpCancelBufferCounter;
     private bool isWallSliding;
+    private float wallJumpCounter;
 
     private void Awake()
     {
@@ -75,6 +79,11 @@ public class PlatformPlayerScript : MonoBehaviour
         return Physics2D.OverlapCircle(wallCheck.position, 0.02f, groundLayer);
     }
 
+    private void Move()
+    {
+        prb.velocity = new Vector2(movementVector.x * latSpeed, prb.velocity.y);
+    }
+
     private void Flip()
     {
         isFacingRight = !isFacingRight;
@@ -85,8 +94,14 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Jump()
     {
-        prb.velocity = new Vector2(prb.velocity.x, jumpStr);
         jumpBufferCounter = 0f;
+        prb.velocity = new Vector2(prb.velocity.x, jumpStr);
+    }
+
+    private void JumpCancel()
+    {
+        jumpCancelBufferCounter = 0;
+        prb.velocity = new Vector2(prb.velocity.x, prb.velocity.y * jumpSlowdown);
     }
 
     private void wallSlide()
@@ -111,7 +126,6 @@ public class PlatformPlayerScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        prb.velocity = new Vector2(movementVector.x * latSpeed, prb.velocity.y);
         if (!isFacingRight && movementVector.x > 0f)
         {
             Flip();
@@ -141,15 +155,8 @@ public class PlatformPlayerScript : MonoBehaviour
         Do note that with this method, the bufferCheck GameObject has to be moved downwards to allow for earlier buffering.*/
         if (input.PlatformInput.Jump.WasPerformedThisFrame())
         {
-            if (!canBuffer() && coyotteTimeCounter < 0f)
-            {
-                // Put double jump function here
-
-            }
-            else
-            {
-                jumpBufferCounter = jumpBufferTime;
-            }
+            jumpBufferCounter = jumpBufferTime;
+            
         }
         else
         {
@@ -167,13 +174,17 @@ public class PlatformPlayerScript : MonoBehaviour
             jumpCancelBufferCounter -= Time.deltaTime;
         }
 
+        Move();
+
         /* This part runs the actual jump. It only executes if the jump buffer counter is still higher than zero (so if you're
         still within the timeframe to buffer a jump after pressing), and you have coyotte time left (i.e. you just left the ground
         or are currently grounded).*/
         if (coyotteTimeCounter > 0f && jumpBufferCounter > 0f)
         {
-            jumpBufferCounter = 0;
-            prb.velocity = new Vector2(prb.velocity.x, jumpStr);
+            if (coyotteTimeCounter > 0f && !isWallSliding)
+            {
+                Jump();
+            }
         }
 
         /* This part runs if the jump was canceled (i.e. the key was realeased) within the buffer time frame, and the player is moving upwards.
@@ -181,8 +192,7 @@ public class PlatformPlayerScript : MonoBehaviour
         It doesn't allow the player to un-cancel their jump right before landing, but that could certainly be implemented, if necessary.*/
         if (jumpCancelBufferCounter > 0f && prb.velocity.y > 0f)
         {
-            jumpCancelBufferCounter = 0;
-            prb.velocity = new Vector2(prb.velocity.x, prb.velocity.y * jumpSlowdown);
+            JumpCancel();
         }
     }
 }
