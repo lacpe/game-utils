@@ -8,12 +8,14 @@ public class PlatformPlayerScript : MonoBehaviour
     public Rigidbody2D prb;
     public Transform groundCheck;
     public Transform bufferCheck;
+    public Transform wallCheck;
     public LayerMask groundLayer;
     public float latSpeed = 5;
     public float jumpStr = 5;
     public float jumpSlowdown = 0.5f;
     public float coyotteTime = 0.2f;
     public float jumpBufferTime = 0.2f;
+    public float wallSlidingSpeed = 4f;
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
@@ -21,6 +23,7 @@ public class PlatformPlayerScript : MonoBehaviour
     private float coyotteTimeCounter;
     private float jumpBufferCounter;
     private float jumpCancelBufferCounter;
+    private bool isWallSliding;
 
     private void Awake()
     {
@@ -67,6 +70,11 @@ public class PlatformPlayerScript : MonoBehaviour
         return Physics2D.OverlapCircle(bufferCheck.position, 0.02f, groundLayer);
     }
 
+    private bool isTouchingWall()
+    {
+        return Physics2D.OverlapCircle(wallCheck.position, 0.02f, groundLayer);
+    }
+
     private void Flip()
     {
         isFacingRight = !isFacingRight;
@@ -81,9 +89,17 @@ public class PlatformPlayerScript : MonoBehaviour
         jumpBufferCounter = 0f;
     }
 
-    private void GetJump()
+    private void wallSlide()
     {
-        //Bla bla bla
+        if (isTouchingWall() && !isGrounded() && movementVector.x != 0f)
+        {
+            isWallSliding = true;
+            prb.velocity = new Vector2(prb.velocity.x, Mathf.Clamp(prb.velocity.y, -wallSlidingSpeed, float.MaxValue));
+        }
+        else
+        {
+            isWallSliding = false;
+        }
     }
 
     // Start is called before the first frame update
@@ -104,6 +120,8 @@ public class PlatformPlayerScript : MonoBehaviour
         {
             Flip();
         }
+
+        wallSlide();
 
         /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
         double jumps... For now though, all it resets is the coyotte time counter (which measures if the player left the ground,
@@ -126,6 +144,7 @@ public class PlatformPlayerScript : MonoBehaviour
             if (!canBuffer() && coyotteTimeCounter < 0f)
             {
                 // Put double jump function here
+
             }
             else
             {
