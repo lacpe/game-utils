@@ -580,6 +580,9 @@ MonoBehaviour:
   wallJumpTime: 0.4
   wallJumpPushBack: 7
   wallJumpStr: 15
+  wallJumpSlowdown: 0.5
+  doubleJumpStr: 10
+  doubleJumpMax: 2
 --- !u!1 &1266034845
 GameObject:
   m_ObjectHideFlags: 0

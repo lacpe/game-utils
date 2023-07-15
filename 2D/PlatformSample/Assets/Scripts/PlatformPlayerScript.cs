@@ -14,8 +14,8 @@ public class PlatformPlayerScript : MonoBehaviour
     public Transform wallCheck1;
     public Transform wallCheck2;
     public LayerMask groundLayer;
-    public float latSpeed = 5;
-    public float jumpStr = 5;
+    public float latSpeed;
+    public float jumpStr;
     public float jumpSlowdown = 0.5f;
     public float coyotteTime = 0.2f;
     public float jumpBufferTime = 0.2f;
@@ -24,6 +24,8 @@ public class PlatformPlayerScript : MonoBehaviour
     public float wallJumpPushBack;
     public float wallJumpStr;
     public float wallJumpSlowdown = 0.5f;
+    public float doubleJumpStr;
+    public int doubleJumpMax;
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
@@ -33,6 +35,7 @@ public class PlatformPlayerScript : MonoBehaviour
     private float jumpCancelBufferCounter;
     private bool isWallSliding;
     private bool isWallJumping;
+    private int doubleJumpCounter;
 
     private void Awake()
     {
@@ -114,7 +117,7 @@ public class PlatformPlayerScript : MonoBehaviour
         prb.velocity = new Vector2(prb.velocity.x, prb.velocity.y * jumpSlowdown);
     }
 
-    private void wallSlide()
+    private void WallSlide()
     {
         if (isTouchingWall() && !isGrounded() && movementVector.x != 0f)
         {
@@ -127,20 +130,27 @@ public class PlatformPlayerScript : MonoBehaviour
         }
     }
 
-    private void wallJump()
+    private void WallJump()
     {
         jumpBufferCounter = 0f;
         isWallJumping = true;
         Debug.Log(isWallJumping);
         float jumpDirection = -transform.localScale.x;
         prb.velocity = new Vector2(jumpDirection * (wallJumpPushBack + Math.Abs(movementVector.x)), wallJumpStr);
-        Invoke(nameof(cancelWallJump), wallJumpTime);
+        Invoke(nameof(CancelWallJump), wallJumpTime);
     }
 
-    private void cancelWallJump()
+    private void CancelWallJump()
     {
         isWallJumping = false;
         Debug.Log(isWallJumping);
+    }
+
+    private void DoubleJump()
+    {
+        jumpBufferCounter = 0;
+        doubleJumpCounter -= 1;
+        prb.velocity = new Vector2(prb.velocity.x, doubleJumpStr);
     }
 
     // Start is called before the first frame update
@@ -161,7 +171,7 @@ public class PlatformPlayerScript : MonoBehaviour
             Flip();
         }
 
-        wallSlide();
+        WallSlide();
 
 
         /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
@@ -171,6 +181,7 @@ public class PlatformPlayerScript : MonoBehaviour
         if (isGrounded())
         {
             coyotteTimeCounter = coyotteTime;
+            doubleJumpCounter = doubleJumpMax;
             isWallJumping = false;
         }
         else
@@ -216,13 +227,18 @@ public class PlatformPlayerScript : MonoBehaviour
         or are currently grounded).*/
         if (jumpBufferCounter > 0f)
         {
-            if (coyotteTimeCounter > 0f && !isWallSliding)
+            if (isWallSliding)
+            {
+                WallJump();
+            }
+            else if (coyotteTimeCounter > 0f)
             {
                 Jump();
             }
-            if (isWallSliding)
+            else if (doubleJumpCounter > 0 && !canBuffer())
             {
-                wallJump();
+                Debug.Log(doubleJumpCounter);
+                DoubleJump();
             }
         }
 
