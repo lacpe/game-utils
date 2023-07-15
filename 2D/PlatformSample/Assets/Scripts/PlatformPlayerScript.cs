@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,9 +7,12 @@ using UnityEngine.InputSystem;
 public class PlatformPlayerScript : MonoBehaviour
 {
     public Rigidbody2D prb;
-    public Transform groundCheck;
+    public Transform groundCheck1;
+    public Transform groundCheck2;
+    public Transform groundCheck3;
     public Transform bufferCheck;
-    public Transform wallCheck;
+    public Transform wallCheck1;
+    public Transform wallCheck2;
     public LayerMask groundLayer;
     public float latSpeed = 5;
     public float jumpStr = 5;
@@ -17,8 +21,9 @@ public class PlatformPlayerScript : MonoBehaviour
     public float jumpBufferTime = 0.2f;
     public float wallSlidingSpeed = 4f;
     public float wallJumpTime = 0.4f;
-    public float wallJumpPushBack = 6;
-    public float wallJumpStr = 4;
+    public float wallJumpPushBack;
+    public float wallJumpStr;
+    public float wallJumpSlowdown = 0.5f;
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
@@ -27,7 +32,7 @@ public class PlatformPlayerScript : MonoBehaviour
     private float jumpBufferCounter;
     private float jumpCancelBufferCounter;
     private bool isWallSliding;
-    private float wallJumpCounter;
+    private bool isWallJumping;
 
     private void Awake()
     {
@@ -66,7 +71,10 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private bool isGrounded()
     {
-        return Physics2D.OverlapCircle(groundCheck.position, 0.02f, groundLayer);
+        bool isGround1 = Physics2D.OverlapCircle(groundCheck1.position, 0.02f, groundLayer);
+        bool isGround2 = Physics2D.OverlapCircle(groundCheck2.position, 0.02f, groundLayer);
+        bool isGround3 = Physics2D.OverlapCircle(groundCheck3.position, 0.02f, groundLayer);
+        return isGround1 || isGround2 || isGround3;
     }
 
     private bool canBuffer()
@@ -76,7 +84,9 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private bool isTouchingWall()
     {
-        return Physics2D.OverlapCircle(wallCheck.position, 0.02f, groundLayer);
+        bool isWall1 = Physics2D.OverlapCircle(wallCheck1.position, 0.02f, groundLayer);
+        bool isWall2 = Physics2D.OverlapCircle(wallCheck2.position, 0.02f, groundLayer);
+        return isWall1 || isWall2;
     }
 
     private void Move()
@@ -117,6 +127,22 @@ public class PlatformPlayerScript : MonoBehaviour
         }
     }
 
+    private void wallJump()
+    {
+        jumpBufferCounter = 0f;
+        isWallJumping = true;
+        Debug.Log(isWallJumping);
+        float jumpDirection = -transform.localScale.x;
+        prb.velocity = new Vector2(jumpDirection * (wallJumpPushBack + Math.Abs(movementVector.x)), wallJumpStr);
+        Invoke(nameof(cancelWallJump), wallJumpTime);
+    }
+
+    private void cancelWallJump()
+    {
+        isWallJumping = false;
+        Debug.Log(isWallJumping);
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -137,6 +163,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
         wallSlide();
 
+
         /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
         double jumps... For now though, all it resets is the coyotte time counter (which measures if the player left the ground,
         i.e. walked off a platform, recently enough that they still have their initial jump.) If the player isn't grounded,
@@ -144,6 +171,7 @@ public class PlatformPlayerScript : MonoBehaviour
         if (isGrounded())
         {
             coyotteTimeCounter = coyotteTime;
+            isWallJumping = false;
         }
         else
         {
@@ -174,16 +202,27 @@ public class PlatformPlayerScript : MonoBehaviour
             jumpCancelBufferCounter -= Time.deltaTime;
         }
 
-        Move();
+        if (!isWallJumping)
+        {
+            Move();
+        }
+        if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
+        {
+            prb.velocity = new Vector2(wallJumpSlowdown*prb.velocity.x, prb.velocity.y);
+        }
 
         /* This part runs the actual jump. It only executes if the jump buffer counter is still higher than zero (so if you're
         still within the timeframe to buffer a jump after pressing), and you have coyotte time left (i.e. you just left the ground
         or are currently grounded).*/
-        if (coyotteTimeCounter > 0f && jumpBufferCounter > 0f)
+        if (jumpBufferCounter > 0f)
         {
             if (coyotteTimeCounter > 0f && !isWallSliding)
             {
                 Jump();
+            }
+            if (isWallSliding)
+            {
+                wallJump();
             }
         }
 
