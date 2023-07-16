@@ -572,13 +572,14 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   latSpeed: 6
+  timeToSpeed: 0.1
   jumpStr: 15
   jumpSlowdown: 0.5
   coyotteTime: 0.2
   jumpBufferTime: 0.2
   wallSlidingSpeed: 2
   wallJumpTime: 0.4
-  wallJumpPushBack: 7
+  wallJumpPushBack: 6
   wallJumpStr: 15
   wallJumpSlowdown: 0.5
   doubleJumpStr: 10

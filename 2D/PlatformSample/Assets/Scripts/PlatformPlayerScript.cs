@@ -15,6 +15,7 @@ public class PlatformPlayerScript : MonoBehaviour
     public Transform wallCheck2;
     public LayerMask groundLayer;
     public float latSpeed;
+    public float timeToSpeed;
     public float jumpStr;
     public float jumpSlowdown = 0.5f;
     public float coyotteTime = 0.2f;
@@ -29,6 +30,8 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
+    private float acceleration;
+    private float currentSpeed;
     private bool isFacingRight = true;
     private float coyotteTimeCounter;
     private float jumpBufferCounter;
@@ -40,6 +43,8 @@ public class PlatformPlayerScript : MonoBehaviour
     private void Awake()
     {
         input = new PlayerInputScript();
+        acceleration = latSpeed / timeToSpeed;
+        currentSpeed = 0f;
     }
 
     private void OnEnable()
@@ -94,7 +99,15 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Move()
     {
-        prb.velocity = new Vector2(movementVector.x * latSpeed, prb.velocity.y);
+        if (input.PlatformInput.Movement.IsPressed())
+        {
+            currentSpeed += acceleration * Time.deltaTime;
+        }
+        else
+        {
+            currentSpeed = 0;
+        }
+        prb.velocity = new Vector2(movementVector.x * Mathf.Min(currentSpeed, latSpeed), prb.velocity.y);
     }
 
     private void Flip()
@@ -217,17 +230,19 @@ public class PlatformPlayerScript : MonoBehaviour
         {
             Move();
         }
+        /* Old idea that I removed
         if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
         {
             prb.velocity = new Vector2(wallJumpSlowdown*prb.velocity.x, prb.velocity.y);
         }
+        */
 
         /* This part runs the actual jump. It only executes if the jump buffer counter is still higher than zero (so if you're
         still within the timeframe to buffer a jump after pressing), and you have coyotte time left (i.e. you just left the ground
         or are currently grounded).*/
         if (jumpBufferCounter > 0f)
         {
-            if (isWallSliding)
+            if (isTouchingWall() && !isGrounded())
             {
                 WallJump();
             }
