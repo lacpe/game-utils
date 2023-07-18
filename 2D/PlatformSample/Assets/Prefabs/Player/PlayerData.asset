@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: PlayerData
   m_EditorClassIdentifier: 
   maxGroundSpeed: 8
-  groundAcceleration: 0.1
-  groundAccelAmount: 0.625
-  groundDecceleration: 0.1
-  groundDeccelAmount: 0.625
+  groundAcceleration: 1
+  groundAccelAmount: 6.25
+  groundDecceleration: 1
+  groundDeccelAmount: 6.25
   airAccelModifier: 0.75
   airDeccelModifier: 0.75
   conserveMomentum: 0
