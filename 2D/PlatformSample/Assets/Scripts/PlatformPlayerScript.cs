@@ -1,3 +1,9 @@
+/*
+Part of this code were taken from DawnosaurDev's public repository here: https://github.com/DawnosaurDev/platformer-movement/blob/main/Scripts/Run%20Only/PlayerRun.cs
+Other parts were taken from tutorials by bendux: https://www.youtube.com/@bendux
+Other stuff was my own customization.
+*/
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,7 +12,16 @@ using UnityEngine.InputSystem;
 
 public class PlatformPlayerScript : MonoBehaviour
 {
+    [Header("Script-controlled components")]
+    #region Components
+    // Using DawnosaurDev's method, I have a script that contains all of the player's stats. Or at the very least, it will contain all of that later.
+    public PlatformPlayerData Data;
     public Rigidbody2D prb;
+    public AudioSource audio;
+    #endregion
+
+    [Header("State-check GameObjects")]
+    #region State Checks
     public Transform groundCheck1;
     public Transform groundCheck2;
     public Transform groundCheck3;
@@ -14,6 +29,8 @@ public class PlatformPlayerScript : MonoBehaviour
     public Transform wallCheck1;
     public Transform wallCheck2;
     public LayerMask groundLayer;
+    #endregion
+
     public float latSpeed;
     public float timeToSpeed;
     public float jumpStr;
@@ -64,7 +81,8 @@ public class PlatformPlayerScript : MonoBehaviour
         movementVector = Vector2.zero;
     }
 
-    /* Legacy, from the old way jumps were performed. Since these functions only ever executed
+    /* Legacy, from the old way jumps were performed. Since these functions only ever executed when the jump input was pressed,
+       input buffering was completely impossible using this method.
     private void JumpPerformed(InputAction.CallbackContext context)
     {
         Jump();
@@ -99,6 +117,36 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Move()
     {
+        float targetSpeed = movementVector.x * Data.maxGroundSpeed;
+
+        #region Calculating the accelaration rate
+        float accelRate;
+        if (isGrounded())
+            accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.groundAccelAmount : Data.groundDeccelAmount;
+        else
+            accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.groundAccelAmount * Data.airAccelModifier : Data.groundDeccelAmount * Data.airDeccelModifier;
+        #endregion
+
+        // TODO: Implement bonus acceleration when you're in jump hang time (tip: check if player performed a jump, and make sure their vertical speed is small)
+
+        #region Momentum conservation
+        /* Commented out because I do not want to think about that right now
+        if(Data.conserveMomentum && Mathf.Abs(prb.velocity.x) > Mathf.Abs(targetSpeed) && Mathf.Sign(prb.velocity.x) == Mathf.Sign(targetSpeed) && targetSpeed > 0.01f && isGrounded())
+        {
+            //Prevent any deceleration, or conserve momentum. Might want to look into allowing players to speed up slightly.
+            accelRate = 0;
+        }
+        */
+        #endregion
+
+        #region Calculating acceleration & force
+        float speedDif = targetSpeed - prb.velocity.x; // Difference between current velocity and desired velocity
+        float moveForce = speedDif * accelRate; // Caculate the amount of force to be applied
+        #endregion
+
+        prb.AddForce(moveForce * Vector2.right, ForceMode2D.Force);
+
+        /* Legacy way to do movement. This was cool because it featured acceleration, but it didn't use forces which was bound to cause problems down the line.
         if (input.PlatformInput.Movement.IsPressed())
         {
             currentSpeed += acceleration * Time.deltaTime;
@@ -108,6 +156,7 @@ public class PlatformPlayerScript : MonoBehaviour
             currentSpeed = 0;
         }
         prb.velocity = new Vector2(movementVector.x * Mathf.Min(currentSpeed, latSpeed), prb.velocity.y);
+        */
     }
 
     private void Flip()
@@ -171,6 +220,13 @@ public class PlatformPlayerScript : MonoBehaviour
     {
         
     }
+    private void FixedUpdate()
+    {
+        if (!isWallJumping)
+        {
+            Move();
+        }
+    }
 
     // Update is called once per frame
     void Update()
@@ -226,10 +282,6 @@ public class PlatformPlayerScript : MonoBehaviour
             jumpCancelBufferCounter -= Time.deltaTime;
         }
 
-        if (!isWallJumping)
-        {
-            Move();
-        }
         /* Old idea that I removed
         if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
         {
