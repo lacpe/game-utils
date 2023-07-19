@@ -47,21 +47,28 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private PlayerInputScript input;
     private Vector2 movementVector = Vector2.zero;
-    private float acceleration;
-    private float currentSpeed;
+
+    #region General purpose booleans
     private bool isFacingRight = true;
+    private bool isWallSliding;
+    private bool isJumping;
+    private bool isWallJumping;
+    private bool isDoubleJumping;
+    #endregion
+
+    #region Timers
     private float coyotteTimeCounter;
     private float jumpBufferCounter;
     private float jumpCancelBufferCounter;
-    private bool isWallSliding;
-    private bool isWallJumping;
     private int doubleJumpCounter;
+    #endregion
+
+    [HideInInspector] public static InputSettings settings;
 
     private void Awake()
     {
         input = new PlayerInputScript();
-        acceleration = latSpeed / timeToSpeed;
-        currentSpeed = 0f;
+        isJumping = false;
     }
 
     private void OnEnable()
@@ -127,7 +134,8 @@ public class PlatformPlayerScript : MonoBehaviour
             accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.groundAccelAmount * Data.airAccelModifier : Data.groundDeccelAmount * Data.airDeccelModifier;
         #endregion
 
-        // TODO: Implement bonus acceleration when you're in jump hang time (tip: check if player performed a jump, and make sure their vertical speed is small)
+        if (isWallJumping)
+            accelRate *= Data.wallAccelModifier;
 
         #region Momentum conservation
         /* Commented out because I do not want to think about that right now
@@ -170,7 +178,8 @@ public class PlatformPlayerScript : MonoBehaviour
     private void Jump()
     {
         jumpBufferCounter = 0f;
-        prb.velocity = new Vector2(prb.velocity.x, jumpStr);
+        isJumping = true;
+        prb.AddForce(Vector2.up * Data.jumpPower, ForceMode2D.Impulse);
     }
 
     private void JumpCancel()
@@ -196,16 +205,14 @@ public class PlatformPlayerScript : MonoBehaviour
     {
         jumpBufferCounter = 0f;
         isWallJumping = true;
-        Debug.Log(isWallJumping);
         float jumpDirection = -transform.localScale.x;
-        prb.velocity = new Vector2(jumpDirection * (wallJumpPushBack + Math.Abs(movementVector.x)), wallJumpStr);
-        Invoke(nameof(CancelWallJump), wallJumpTime);
+        prb.AddForce(new Vector2(jumpDirection * (Data.wallKickOff), Data.wallJumpPower), ForceMode2D.Impulse);
+        Invoke(nameof(CancelWallJump), Data.wallAccelTime);
     }
 
     private void CancelWallJump()
     {
         isWallJumping = false;
-        Debug.Log(isWallJumping);
     }
 
     private void DoubleJump()
@@ -222,27 +229,7 @@ public class PlatformPlayerScript : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        if (!isWallJumping)
-        {
-            Move();
-        }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (!isFacingRight && movementVector.x > 0f)
-        {
-            Flip();
-        }
-        if (isFacingRight && movementVector.x < 0f)
-        {
-            Flip();
-        }
-
-        WallSlide();
-
-
+        #region Ground check
         /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
         double jumps... For now though, all it resets is the coyotte time counter (which measures if the player left the ground,
         i.e. walked off a platform, recently enough that they still have their initial jump.) If the player isn't grounded,
@@ -251,43 +238,15 @@ public class PlatformPlayerScript : MonoBehaviour
         {
             coyotteTimeCounter = coyotteTime;
             doubleJumpCounter = doubleJumpMax;
+            isJumping = false;
             isWallJumping = false;
+            isDoubleJumping = false;
         }
         else
         {
             coyotteTimeCounter -= Time.deltaTime;
         }
-
-        /* This part starts the jump buffer timer at its max value if the jump key was just pressed, and the player is within "buffer distance" of the ground.
-        If the player doesn't hit the jump button, then the timer runs down (i.e. infinitely low if the button is never pressed, but that's unlikely to happen).
-        Do note that with this method, the bufferCheck GameObject has to be moved downwards to allow for earlier buffering.*/
-        if (input.PlatformInput.Jump.WasPerformedThisFrame())
-        {
-            jumpBufferCounter = jumpBufferTime;
-            
-        }
-        else
-        {
-            jumpBufferCounter -= Time.deltaTime;
-        }
-
-        /* This part starts the jump cancel buffer timer. It works similarly to the jump buffer timer, except the trigger is once
-        the jump key is released.*/
-        if (input.PlatformInput.Jump.WasReleasedThisFrame())
-        {
-            jumpCancelBufferCounter = jumpBufferTime;
-        }
-        else
-        {
-            jumpCancelBufferCounter -= Time.deltaTime;
-        }
-
-        /* Old idea that I removed
-        if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
-        {
-            prb.velocity = new Vector2(wallJumpSlowdown*prb.velocity.x, prb.velocity.y);
-        }
-        */
+        #endregion
 
         /* This part runs the actual jump. It only executes if the jump buffer counter is still higher than zero (so if you're
         still within the timeframe to buffer a jump after pressing), and you have coyotte time left (i.e. you just left the ground
@@ -316,5 +275,63 @@ public class PlatformPlayerScript : MonoBehaviour
         {
             JumpCancel();
         }
+
+        Move();
+        if (prb.velocity.y > 0f)
+        {
+            prb.gravityScale = Data.jumpGravity;
+        }
+        else if (prb.velocity.y < 0f)
+        {
+            prb.gravityScale = Data.jumpGravity * Data.fallGravityModifier;
+        }
+        if ((isJumping || isWallJumping || isDoubleJumping) && Mathf.Abs(prb.velocity.y) < Data.hangAbsVelocity)
+            prb.gravityScale *= Data.hangGravityModifier;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (!isFacingRight && movementVector.x > 0f)
+        {
+            Flip();
+        }
+        if (isFacingRight && movementVector.x < 0f)
+        {
+            Flip();
+        }
+
+        WallSlide();
+
+        /* This part starts the jump buffer timer at its max value if the jump key was just pressed, and the player is within "buffer distance" of the ground.
+        If the player doesn't hit the jump button, then the timer runs down (i.e. infinitely low if the button is never pressed, but that's unlikely to happen).
+        Do note that with this method, the bufferCheck GameObject has to be moved downwards to allow for earlier buffering.*/
+        if (input.PlatformInput.Jump.WasPerformedThisFrame())
+        {
+            jumpBufferCounter = jumpBufferTime;
+            jumpCancelBufferCounter = 0;
+        }
+        else
+        {
+            jumpBufferCounter -= Time.deltaTime;
+        }
+
+        /* This part starts the jump cancel buffer timer. It works similarly to the jump buffer timer, except the trigger is once
+        the jump key is released.*/
+        if (input.PlatformInput.Jump.WasReleasedThisFrame())
+        {
+            jumpCancelBufferCounter = jumpBufferTime;
+        }
+        else
+        {
+            jumpCancelBufferCounter -= Time.deltaTime;
+        }
+
+        /* Old idea that I removed
+        if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
+        {
+            prb.velocity = new Vector2(wallJumpSlowdown*prb.velocity.x, prb.velocity.y);
+        }
+        */
     }
 }

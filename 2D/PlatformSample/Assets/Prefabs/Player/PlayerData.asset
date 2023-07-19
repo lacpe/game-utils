@@ -15,8 +15,23 @@ MonoBehaviour:
   maxGroundSpeed: 8
   groundAcceleration: 1
   groundAccelAmount: 6.25
-  groundDecceleration: 1
-  groundDeccelAmount: 6.25
+  groundDecceleration: 2
+  groundDeccelAmount: 12.5
   airAccelModifier: 0.75
   airDeccelModifier: 0.75
   conserveMomentum: 0
+  jumpPower: 13
+  jumpGravity: 2
+  fallGravityModifier: 2
+  hangGravityModifier: 0.75
+  hangAbsVelocity: 0.5
+  jumpSlowdown: 0.5
+  coyotteTime: 0.2
+  jumpBufferTime: 0.2
+  wallSlidingSpeed: 0
+  wallKickOff: 5
+  wallJumpPower: 12.5
+  wallAccelModifier: 0.1
+  wallAccelTime: 0.6
+  doubleJumpPower: 0
+  doubleJumpMax: 0
