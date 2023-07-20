@@ -54,6 +54,7 @@ public class PlatformPlayerScript : MonoBehaviour
     private bool isJumping;
     private bool isWallJumping;
     private bool isDoubleJumping;
+    private bool isDashing;
     #endregion
 
     #region Timers
@@ -61,6 +62,8 @@ public class PlatformPlayerScript : MonoBehaviour
     private float jumpBufferCounter;
     private float jumpCancelBufferCounter;
     private int doubleJumpCounter;
+    private float dashCooldownTimer;
+    private int dashCounter;
     #endregion
 
     [HideInInspector] public static InputSettings settings;
@@ -76,6 +79,7 @@ public class PlatformPlayerScript : MonoBehaviour
         input.Enable();
         input.PlatformInput.Movement.performed += MovementPerformed;
         input.PlatformInput.Movement.canceled += MovementCanceled;
+        input.PlatformInput.Dash.performed += DashPerformed;
     }
 
     private void MovementPerformed(InputAction.CallbackContext context)
@@ -86,6 +90,31 @@ public class PlatformPlayerScript : MonoBehaviour
     private void MovementCanceled(InputAction.CallbackContext context)
     {
         movementVector = Vector2.zero;
+    }
+
+    private void DashPerformed(InputAction.CallbackContext context)
+    {
+        if (dashCounter > 0)
+        {
+            #region Getting dash direction
+            Vector2 dashDirection;
+            if (movementVector == Vector2.zero)
+                dashDirection = new Vector2(transform.localScale.x, 0);
+            else
+                dashDirection = movementVector.normalized;
+            #endregion
+
+            dashCounter -= 1;
+            isDashing = true;
+            dashCooldownTimer = Data.dashCooldown;
+
+            Invoke(nameof(DashEnded), Data.dashDuration);
+        }
+    }
+
+    private void DashEnded()
+    {
+        isDashing = false;
     }
 
     /* Legacy, from the old way jumps were performed. Since these functions only ever executed when the jump input was pressed,
@@ -134,8 +163,10 @@ public class PlatformPlayerScript : MonoBehaviour
             accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? Data.groundAccelAmount * Data.airAccelModifier : Data.groundDeccelAmount * Data.airDeccelModifier;
         #endregion
 
+        #region Slowing player down when wall kicking
         if (isWallJumping)
             accelRate *= Data.wallAccelModifier;
+        #endregion
 
         #region Momentum conservation
         /* Commented out because I do not want to think about that right now
@@ -219,7 +250,8 @@ public class PlatformPlayerScript : MonoBehaviour
     {
         jumpBufferCounter = 0;
         doubleJumpCounter -= 1;
-        prb.velocity = new Vector2(prb.velocity.x, doubleJumpStr);
+        isDoubleJumping = true;
+        prb.AddForce(Vector2.up * Data.doubleJumpPower, ForceMode2D.Impulse);
     }
 
     // Start is called before the first frame update
@@ -236,8 +268,9 @@ public class PlatformPlayerScript : MonoBehaviour
         your coyotte time starts running out.*/
         if (isGrounded())
         {
-            coyotteTimeCounter = coyotteTime;
-            doubleJumpCounter = doubleJumpMax;
+            coyotteTimeCounter = Data.coyotteTime;
+            doubleJumpCounter = Data.doubleJumpMax;
+            dashCounter = Data.dashMax;
             isJumping = false;
             isWallJumping = false;
             isDoubleJumping = false;
@@ -263,7 +296,6 @@ public class PlatformPlayerScript : MonoBehaviour
             }
             else if (doubleJumpCounter > 0 && !canBuffer())
             {
-                Debug.Log(doubleJumpCounter);
                 DoubleJump();
             }
         }
@@ -277,16 +309,14 @@ public class PlatformPlayerScript : MonoBehaviour
         }
 
         Move();
-        if (prb.velocity.y > 0f)
-        {
+
+        if (prb.velocity.y > 0f && !isDashing)
             prb.gravityScale = Data.jumpGravity;
-        }
-        else if (prb.velocity.y < 0f)
-        {
+        else if (prb.velocity.y <= 0f && isDashing!)
             prb.gravityScale = Data.jumpGravity * Data.fallGravityModifier;
-        }
-        if ((isJumping || isWallJumping || isDoubleJumping) && Mathf.Abs(prb.velocity.y) < Data.hangAbsVelocity)
+        if ((isJumping || isWallJumping || isDoubleJumping) && Mathf.Abs(prb.velocity.y) < Data.hangAbsVelocity && !isDashing)
             prb.gravityScale *= Data.hangGravityModifier;
+
     }
 
     // Update is called once per frame
@@ -308,7 +338,7 @@ public class PlatformPlayerScript : MonoBehaviour
         Do note that with this method, the bufferCheck GameObject has to be moved downwards to allow for earlier buffering.*/
         if (input.PlatformInput.Jump.WasPerformedThisFrame())
         {
-            jumpBufferCounter = jumpBufferTime;
+            jumpBufferCounter = Data.jumpBufferTime;
             jumpCancelBufferCounter = 0;
         }
         else
@@ -320,12 +350,15 @@ public class PlatformPlayerScript : MonoBehaviour
         the jump key is released.*/
         if (input.PlatformInput.Jump.WasReleasedThisFrame())
         {
-            jumpCancelBufferCounter = jumpBufferTime;
+            jumpCancelBufferCounter = Data.jumpBufferTime;
         }
         else
         {
             jumpCancelBufferCounter -= Time.deltaTime;
         }
+
+        if (!isDashing)
+            dashCooldownTimer -= Time.deltaTime;
 
         /* Old idea that I removed
         if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())

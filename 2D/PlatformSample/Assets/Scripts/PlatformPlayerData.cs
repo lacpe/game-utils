@@ -39,6 +39,11 @@ public class PlatformPlayerData : ScriptableObject
         [Header("Double jumping")]
         public float doubleJumpPower;
         public int doubleJumpMax;
+        [Header("Dashing")]
+        public float dashPower;
+        public float dashDuration;
+        public float dashCooldown;
+        public int dashMax;
 
     private void OnValidate()
     {

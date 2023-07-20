@@ -29,9 +29,9 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
             ""actions"": [
                 {
                     ""name"": ""Movement"",
-                    ""type"": ""Button"",
+                    ""type"": ""Value"",
                     ""id"": ""11a83ece-05d1-4eac-9121-974304412418"",
-                    ""expectedControlType"": ""Button"",
+                    ""expectedControlType"": ""Dpad"",
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
@@ -40,6 +40,15 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
                     ""name"": ""Jump"",
                     ""type"": ""Button"",
                     ""id"": ""b348e75d-d6d9-4e65-86ef-e7a3bc26708c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Dash"",
+                    ""type"": ""Button"",
+                    ""id"": ""42c23193-eb83-402f-9c89-e3e3db7ed3de"",
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """",
@@ -112,6 +121,17 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c0e71966-833c-40b1-8e79-6555f910ea8e"",
+                    ""path"": ""<Keyboard>/enter"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -122,6 +142,7 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
         m_PlatformInput = asset.FindActionMap("PlatformInput", throwIfNotFound: true);
         m_PlatformInput_Movement = m_PlatformInput.FindAction("Movement", throwIfNotFound: true);
         m_PlatformInput_Jump = m_PlatformInput.FindAction("Jump", throwIfNotFound: true);
+        m_PlatformInput_Dash = m_PlatformInput.FindAction("Dash", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -185,12 +206,14 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
     private List<IPlatformInputActions> m_PlatformInputActionsCallbackInterfaces = new List<IPlatformInputActions>();
     private readonly InputAction m_PlatformInput_Movement;
     private readonly InputAction m_PlatformInput_Jump;
+    private readonly InputAction m_PlatformInput_Dash;
     public struct PlatformInputActions
     {
         private @PlayerInputScript m_Wrapper;
         public PlatformInputActions(@PlayerInputScript wrapper) { m_Wrapper = wrapper; }
         public InputAction @Movement => m_Wrapper.m_PlatformInput_Movement;
         public InputAction @Jump => m_Wrapper.m_PlatformInput_Jump;
+        public InputAction @Dash => m_Wrapper.m_PlatformInput_Dash;
         public InputActionMap Get() { return m_Wrapper.m_PlatformInput; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -206,6 +229,9 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
+            @Dash.started += instance.OnDash;
+            @Dash.performed += instance.OnDash;
+            @Dash.canceled += instance.OnDash;
         }
 
         private void UnregisterCallbacks(IPlatformInputActions instance)
@@ -216,6 +242,9 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
+            @Dash.started -= instance.OnDash;
+            @Dash.performed -= instance.OnDash;
+            @Dash.canceled -= instance.OnDash;
         }
 
         public void RemoveCallbacks(IPlatformInputActions instance)
@@ -237,5 +266,6 @@ public partial class @PlayerInputScript: IInputActionCollection2, IDisposable
     {
         void OnMovement(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
+        void OnDash(InputAction.CallbackContext context);
     }
 }
