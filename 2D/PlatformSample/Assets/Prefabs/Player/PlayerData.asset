@@ -19,23 +19,26 @@ MonoBehaviour:
   groundDeccelAmount: 12.5
   airAccelModifier: 0.75
   airDeccelModifier: 0.75
-  conserveMomentum: 0
+  conserveMomentum: 1
   jumpPower: 12.5
   jumpGravity: 2
   fallGravityModifier: 2
+  maxFallSpeed: 50
   hangGravityModifier: 0.75
   hangAbsVelocity: 0.5
   jumpSlowdown: 0.5
   coyotteTime: 0.2
   jumpBufferTime: 0.2
-  wallSlidingSpeed: 0
+  wallSlidingSpeed: 6
   wallKickOff: 5
   wallJumpPower: 12
+  wallDashPower: 5
   wallAccelModifier: 0.1
   wallAccelTime: 0.6
   doubleJumpPower: 10
   doubleJumpMax: 1
-  dashPower: 10
-  dashDuration: 0.5
+  dashPower: 15
+  dashDuration: 0.2
+  dashGraceTime: 0.15
   dashCooldown: 0.5
   dashMax: 2
