@@ -174,7 +174,6 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Flip()
     {
-        Debug.Log("I ran");
         isFacingRight = !isFacingRight;
         Vector3 localscale = transform.localScale;
         localscale.x *= -1f;
@@ -183,14 +182,16 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Jump()
     {
+        Debug.Log("I ran jump");
         jumpBufferCounter = 0f;
+        coyotteTimeCounter = 0f;
         isJumping = true;
         if (isDashing)
         {
             isDashCancel = true;
             isDashing = false;
         }
-        animator.SetTrigger("jumpTrig");
+        animator.SetTrigger("jumpTrigger");
         prb.AddForce(Vector2.up * Data.jumpPower, ForceMode2D.Impulse);
     }
 
@@ -205,7 +206,7 @@ public class PlatformPlayerScript : MonoBehaviour
         if (isTouchingWall() && !isGrounded() && movementVector.x != 0f)
         {
             isWallSliding = true;
-            prb.velocity = new Vector2(prb.velocity.x, Mathf.Clamp(prb.velocity.y, -Data.wallSlidingSpeed, float.MaxValue));
+            prb.velocity = new Vector2(prb.velocity.x, Mathf.Max(prb.velocity.y, -Data.wallSlidingSpeed));
         }
         else
         {
@@ -215,6 +216,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void WallJump()
     {
+        Debug.Log("I ran walljump");
         jumpBufferCounter = 0f;
         isWallJumping = true;
         float jumpDirection = -transform.localScale.x;
@@ -230,6 +232,8 @@ public class PlatformPlayerScript : MonoBehaviour
             prb.AddForce(new Vector2(jumpDirection * (Data.wallKickOff), Data.wallJumpPower), ForceMode2D.Impulse);
         }
 
+        animator.SetTrigger("jumpTrigger");
+
         Invoke(nameof(CancelWallJump), Data.wallAccelTime);
     }
 
@@ -240,11 +244,14 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void DoubleJump()
     {
+        Debug.Log("I ran double jump");
         jumpBufferCounter = 0;
         doubleJumpCounter -= 1;
         isDoubleJumping = true;
-        if (prb.velocity.y < 0f)
-            prb.velocity = new Vector2(prb.velocity.x, 0);
+        prb.velocity = new Vector2(prb.velocity.x, 0);
+
+        animator.SetTrigger("jumpTrigger");
+
         prb.AddForce(Vector2.up * Data.doubleJumpPower, ForceMode2D.Impulse);
     }
 
@@ -255,6 +262,7 @@ public class PlatformPlayerScript : MonoBehaviour
         dashCounter -= 1;
         isDashing = true;
         dashCooldownTimer = Data.dashCooldown;
+        coyotteTimeCounter = 0f;
         #endregion
 
         #region Getting dash direction
@@ -278,12 +286,13 @@ public class PlatformPlayerScript : MonoBehaviour
     {
         if (isDashing)
         {
-            Debug.Log("I ran");
             prb.velocity = Vector2.zero;
             if (!isGrounded())
                 Invoke(nameof(DashGraceEnded), Data.dashGraceTime);
             else
+            {
                 isDashing = false;
+            }
         }
     }
 
@@ -299,25 +308,7 @@ public class PlatformPlayerScript : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        #region Ground check
-        /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
-        double jumps... For now though, all it resets is the coyotte time counter (which measures if the player left the ground,
-        i.e. walked off a platform, recently enough that they still have their initial jump.) If the player isn't grounded,
-        your coyotte time starts running out.*/
-        if (isGrounded())
-        {
-            coyotteTimeCounter = Data.coyotteTime;
-            doubleJumpCounter = Data.doubleJumpMax;
-            dashCounter = Data.dashMax;
-            isJumping = false;
-            isWallJumping = false;
-            isDoubleJumping = false;
-        }
-        else
-        {
-            coyotteTimeCounter -= Time.deltaTime;
-        }
-        #endregion
+        WallSlide();
 
         #region Setting gravity scale based on situation
         // If the player has no vertical velocity (i.e. they are grounded) or going upwards, gravity is lessened.
@@ -365,6 +356,8 @@ public class PlatformPlayerScript : MonoBehaviour
 
         if (wantsDash && dashCooldownTimer < 0f && dashCounter > 0)
             Dash();
+        else
+            wantsDash = false;
 
         if (!isDashing)
             Move();
@@ -376,6 +369,33 @@ public class PlatformPlayerScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        animator.SetBool("idleBool", false);
+        #region Ground check
+        /* This part of the function will reset a bunch of player variables back to their max values. Think air dashes, stamina,
+        double jumps... For now though, all it resets is the coyotte time counter (which measures if the player left the ground,
+        i.e. walked off a platform, recently enough that they still have their initial jump.) If the player isn't grounded,
+        your coyotte time starts running out.*/
+        if (isGrounded())
+        {
+            coyotteTimeCounter = Data.coyotteTime;
+            doubleJumpCounter = Data.doubleJumpMax;
+            dashCounter = Data.dashMax;
+
+            if (!isDashing && movementVector.x == 0f)
+                animator.SetBool("idleBool", true);
+            if (isJumping || isWallJumping || isDoubleJumping)
+                animator.SetTrigger("landTrigger");
+
+            isJumping = false;
+            isWallJumping = false;
+            isDoubleJumping = false;
+        }
+        else
+        {
+            coyotteTimeCounter -= Time.deltaTime;
+        }
+        #endregion
+
         if (!isFacingRight && movementVector.x > 0f)
         {
             Flip();
@@ -384,8 +404,6 @@ public class PlatformPlayerScript : MonoBehaviour
         {
             Flip();
         }
-
-        WallSlide();
 
         /* This part starts the jump buffer timer at its max value if the jump key was just pressed, and the player is within "buffer distance" of the ground.
         If the player doesn't hit the jump button, then the timer runs down (i.e. infinitely low if the button is never pressed, but that's unlikely to happen).
@@ -413,6 +431,8 @@ public class PlatformPlayerScript : MonoBehaviour
 
         if (!isDashing)
             dashCooldownTimer -= Time.deltaTime;
+
+        animator.SetBool("dashBool", isDashing);
 
         /* Old idea that I removed
         if (isWallJumping && input.PlatformInput.Movement.WasReleasedThisFrame())
