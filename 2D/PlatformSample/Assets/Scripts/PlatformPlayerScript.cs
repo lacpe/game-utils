@@ -17,6 +17,7 @@ public class PlatformPlayerScript : MonoBehaviour
     // Using DawnosaurDev's method, I have a script that contains all of the player's stats. Or at the very least, it will contain all of that later.
     public PlatformPlayerData Data;
     public Rigidbody2D prb;
+    public Animator animator;
     public AudioSource audio;
     #endregion
 
@@ -173,6 +174,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Flip()
     {
+        Debug.Log("I ran");
         isFacingRight = !isFacingRight;
         Vector3 localscale = transform.localScale;
         localscale.x *= -1f;
@@ -188,6 +190,7 @@ public class PlatformPlayerScript : MonoBehaviour
             isDashCancel = true;
             isDashing = false;
         }
+        animator.SetTrigger("jumpTrig");
         prb.AddForce(Vector2.up * Data.jumpPower, ForceMode2D.Impulse);
     }
 

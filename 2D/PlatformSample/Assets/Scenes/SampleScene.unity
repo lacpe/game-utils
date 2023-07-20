@@ -396,6 +396,7 @@ GameObject:
   - component: {fileID: 990514803}
   - component: {fileID: 990514801}
   - component: {fileID: 990514802}
+  - component: {fileID: 990514806}
   - component: {fileID: 990514805}
   - component: {fileID: 990514804}
   m_Layer: 6
@@ -564,6 +565,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Data: {fileID: 11400000, guid: 085d5d8085b2ed24d96fba3091ad345c, type: 2}
   prb: {fileID: 990514802}
+  animator: {fileID: 990514806}
   audio: {fileID: 990514805}
   groundCheck1: {fileID: 491892491}
   groundCheck2: {fileID: 1775710056}
@@ -670,6 +672,27 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!95 &990514806
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 990514799}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: a233a9807ec96cf488fe545d07c842d6, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1266034845
 GameObject:
   m_ObjectHideFlags: 0
