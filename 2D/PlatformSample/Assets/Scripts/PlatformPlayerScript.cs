@@ -19,6 +19,8 @@ public class PlatformPlayerScript : MonoBehaviour
     public Rigidbody2D prb;
     public Animator animator;
     public AudioSource audio;
+    public ParticleSystem dust;
+    public TrailRenderer trail;
     #endregion
 
     [Header("State-check GameObjects")]
@@ -89,7 +91,11 @@ public class PlatformPlayerScript : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D collision)
     {
         isDashCancel = false;
-        Debug.Log(isDashCancel);
+        if (!isTouchingWall())
+        {
+            MakeCloud();
+            animator.SetTrigger("landTrigger");
+        }
     }
 
     /* Legacy, from the old way jumps were performed. Since these functions only ever executed when the jump input was pressed,
@@ -182,7 +188,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void Jump()
     {
-        Debug.Log("I ran jump");
+        MakeCloud();
         jumpBufferCounter = 0f;
         coyotteTimeCounter = 0f;
         isJumping = true;
@@ -216,7 +222,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void WallJump()
     {
-        Debug.Log("I ran walljump");
+        MakeCloud();
         jumpBufferCounter = 0f;
         isWallJumping = true;
         float jumpDirection = -transform.localScale.x;
@@ -263,6 +269,7 @@ public class PlatformPlayerScript : MonoBehaviour
         isDashing = true;
         dashCooldownTimer = Data.dashCooldown;
         coyotteTimeCounter = 0f;
+        trail.emitting = true;
         #endregion
 
         #region Getting dash direction
@@ -284,6 +291,7 @@ public class PlatformPlayerScript : MonoBehaviour
 
     private void DashEnded()
     {
+        trail.emitting = false;
         if (isDashing)
         {
             prb.velocity = Vector2.zero;
@@ -299,6 +307,11 @@ public class PlatformPlayerScript : MonoBehaviour
     private void DashGraceEnded()
     {
         isDashing = false;
+    }
+
+    private void MakeCloud()
+    {
+        dust.Play();
     }
 
     // Start is called before the first frame update
@@ -383,9 +396,6 @@ public class PlatformPlayerScript : MonoBehaviour
 
             if (!isDashing && movementVector.x == 0f)
                 animator.SetBool("idleBool", true);
-            if (isJumping || isWallJumping || isDoubleJumping)
-                animator.SetTrigger("landTrigger");
-
             isJumping = false;
             isWallJumping = false;
             isDoubleJumping = false;
